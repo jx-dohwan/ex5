@@ -42,11 +42,18 @@ jobs:
           # 2. ECR로 두 태그 모두 푸시
           docker push 925047940866.dkr.ecr.ap-northeast-2.amazonaws.com/std04/nginx:nginx1.31.3-ecr
           docker push 925047940866.dkr.ecr.ap-northeast-2.amazonaws.com/std04/nginx:latest
-
-      # Step 5: ASG 배포 (인스턴스 새로고침 트리거 - ASG 사용 시 주석 해제)
-      # - name: Trigger ASG Instance Refresh
-      #   run: |
-      #     aws autoscaling start-instance-refresh \
-      #       --auto-scaling-group-name "${{ secrets.ASG_NAME }}" \
-      #       --preferences '{"MinHealthyPercentage": 50, "InstanceWarmup": 300}' \
-      #       --region ap-northeast-2
+      - name: 프라이빗 인스턴스 컨테이너 배포
+        run: |
+          aws ssm send-command \
+            --instance-ids "i-039b3a150985ec04d" \
+            --document-name "AWS-RunShellScript" \
+            --comment "Deploy custom Docker image from ECR" \
+            --parameters 'commands=[
+              "aws ecr get-login-password --region ap-northeast-2 | docker login --username AWS --password-stdin 925047940866.dkr.ecr.ap-northeast-2.amazonaws.com",
+              "systemctl stop nginx || true",
+              "docker pull 925047940866.dkr.ecr.ap-northeast-2.amazonaws.com/std04/nginx:latest",
+              "docker stop nginx-container || true",
+              "docker rm nginx-container || true",
+              "docker run -d --name nginx-container -p 80:80 --restart unless-stopped 925047940866.dkr.ecr.ap-northeast-2.amazonaws.com/std04/nginx:latest"
+            ]' \
+            --region ap-northeast-2
