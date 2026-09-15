@@ -50,13 +50,13 @@ jobs:
         run: |
           aws ssm send-command \
             --document-name "AWS-RunShellScript" \
-            --targets "Key=tag:Cicd, Values=asg"
+            --targets "Key=tag:Cicd,Values=asg" \
             --comment "Deploy custom Docker image from ECR" \
             --parameters 'commands=[
-              "aws ecr get-login-password --region ap-northeast-2 | docker login --username AWS --password-stdin 925047940866.dkr.ecr.ap-northeast-2.amazonaws.com",
               "systemctl stop nginx || true",
-              "docker stop nginx-container || true",
-              "docker rm nginx-container || true",
+              "mkdir -p /home/ec2-user/app",
+              "cd /home/ec2-user/app",
+              "aws ecr get-login-password --region ap-northeast-2 | docker login --username AWS --password-stdin 925047940866.dkr.ecr.ap-northeast-2.amazonaws.com",
               "aws s3 cp s3://std04-state-bucket-2026/docker-compose.yaml ./docker-compose.yaml",
               "docker compose pull",
               "docker compose up -d --remove-orphans",
